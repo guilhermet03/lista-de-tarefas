@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Check, List, ListCheck, Plus, Trash, X } from "lucide-react";
+import { Check, List, ListCheck, Plus, Trash, X, LoaderCircle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,12 +24,13 @@ import { Tasks } from "@/generated/prisma/client";
 import { NewTask } from "@/actions/add-task";
 import { deleteTask } from "@/actions/delete-task";
 import { toast } from "sonner";
-
+import {updateTaskStatus } from "@/actions/toggle-done"
 
 
 const Home = () => {
   const [tasksList, setTaskList] = useState<Tasks[]>([]);
   const [task, setTask] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false)
 
   const handleGetTasks = async () => {
     try {
@@ -42,8 +43,11 @@ const Home = () => {
   };
 
   const handleAddTask = async () => {
+    setLoading(true)
     try {
       if (task.length === 0 || !task) {
+        toast.error("Insira uma atividade")
+        setLoading(false)
         return;
       }
       const myNewTask = await NewTask(task);
@@ -55,6 +59,7 @@ const Home = () => {
     } catch (error) {
       throw error;
     }
+      setLoading(false)
   };
 
   const handleDeleteTask = async (id: string) => {
@@ -75,7 +80,10 @@ const Home = () => {
 
   const handleToggleTask = async (taskId: string) => {
     const priviousTasks = [...tasksList] 
-    setTaskList((prev) => {
+
+    try {
+
+      setTaskList((prev) => {
       const updateTaskList = prev.map(task => {
         if(task.id === taskId){
           return {
@@ -88,7 +96,11 @@ const Home = () => {
       })
       return updateTaskList
     })
-
+      await updateTaskStatus(taskId)
+    } catch (error) {
+      setTaskList(priviousTasks)
+      throw error
+    }
   }
 
   useEffect(() => {
@@ -105,7 +117,8 @@ const Home = () => {
             value={task}
           />
           <Button className="cursor-pointer" onClick={handleAddTask}>
-            <Plus /> Cadrastrar{" "}
+            {loading ? <LoaderCircle className="animate-spin"/> : <Plus />}
+             Cadrastrar{" "}
           </Button>
         </CardHeader>
 
@@ -137,9 +150,10 @@ const Home = () => {
                 <div className={`${task.done ? 'w-1 h-full bg-green-500' : 'w-1 h-full bg-red-600'}`}></div>
                 <p className="flex-1 px-2 text-sm cursor-pointer hover:text-gray-700"
                 onClick={() => handleToggleTask(task.id)}>
-                  {task.task}</p>
+                  {task.task}
+                </p>
                 <div className="flex items-center gap-2">
-                  <EditTask></EditTask>
+                  <EditTask task={task} handleGetTasks={handleGetTasks}/>
 
                   <Trash size={16} className="cursor-pointer" onClick={() => handleDeleteTask(task.id)}/>
                 </div>
