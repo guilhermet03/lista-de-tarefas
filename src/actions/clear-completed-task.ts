@@ -9,11 +9,7 @@ export const ClearTaskCompleted = async () => {
             where: {done: true }
         })
 
-        const allTasks = await prisma.tasks.findMany()
-
-        if(!allTasks)
-        
-            return allTasks
+        return prisma.tasks.findMany({orderBy: {createdAt: "asc"}})
 
     } catch (error) {
         throw error

@@ -10,5 +10,8 @@ datasource db {
 model Tasks {
   id String @id @default(cuid())
   task String
-  done Boolean
+  done Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("Tasks")
 }

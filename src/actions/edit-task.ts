@@ -1,24 +1,10 @@
 "use server"
+import { prisma } from "@/utils/prisma"
 
-import { prisma } from "@/utils/prisma";
+type EditTaskProps = { idTask: string; newTask: string }
 
-type EditTaskProps = {
-    idTask: string
-    newTask: string
-}
-
-
- export const editTask = async ({idTask, newTask}: EditTaskProps) => {
-    try {
-        if(!idTask || !newTask) return
-
-        const editedTask = await prisma.tasks.update({
-            where: {id: idTask},
-            data: {task: newTask }
-        })
-        if(!editedTask) return
-
-    } catch (error) {
-        throw error
-    }
+export const editTask = async ({ idTask, newTask }: EditTaskProps) => {
+  const text = newTask.trim()
+  if (!idTask || !text || text.length > 200) throw new Error("Dados inválidos")
+  return prisma.tasks.update({ where: { id: idTask }, data: { task: text } })
 }
