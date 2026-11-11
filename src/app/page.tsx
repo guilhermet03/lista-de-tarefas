@@ -1,11 +1,10 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Check, List, ListCheck, Plus, Trash, X, LoaderCircle } from "lucide-react";
+import { ListCheck, Plus, Trash, LoaderCircle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,12 +24,17 @@ import { NewTask } from "@/actions/add-task";
 import { deleteTask } from "@/actions/delete-task";
 import { toast } from "sonner";
 import {updateTaskStatus } from "@/actions/toggle-done"
+import Filter from "@/components/filter";
+import { FilterType } from "@/components/filter";
+import { ClearTaskCompleted } from "@/actions/clear-completed-tasks";
 
 
 const Home = () => {
   const [tasksList, setTaskList] = useState<Tasks[]>([]);
   const [task, setTask] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false)
+  const [currentFilter, setCurrentFilter] = useState<FilterType>('all')
+  const [filterTask, setFilterTask] = useState<Tasks[]>([])
 
   const handleGetTasks = async () => {
     try {
@@ -103,9 +107,32 @@ const Home = () => {
     }
   }
 
+  const clearCompletedTask = async () => {
+    const deletedTask = await ClearTaskCompleted()
+
+    if(!deletedTask) return
+    
+    setTaskList(deletedTask)
+  }
+
   useEffect(() => {
     handleGetTasks();
   }, []);
+
+  useEffect(() => {
+    switch (currentFilter) {
+      case "all":
+        setFilterTask(tasksList)
+        break
+      case "pending":
+        const pendingTasks = tasksList.filter(task => !task.done)
+        setFilterTask(pendingTasks)
+        break
+      case "completed":
+        const completedTask = tasksList.filter(task => task.done)
+        setFilterTask(completedTask)
+    }
+  }, [currentFilter, tasksList])
 
   return (
     <main className="w-full h-screen bg-gray-100 flex justify-center items-center">
@@ -125,24 +152,13 @@ const Home = () => {
         <CardContent>
           <Separator className="mb-4" />
 
-          <div className="flex gap-2 ">
-            <Badge className="cursor-pointer" variant="default">
-              <List />
-              Lista
-            </Badge>
-            <Badge className="cursor-pointer" variant="outline">
-              <X />
-              Não Concluidas
-            </Badge>
-            <Badge className="cursor-pointer" variant="outline">
-              <Check />
-              Concluidas
-            </Badge>
-          </div>
+          <Filter currentFilter={currentFilter} setCurrentFilter={setCurrentFilter}/>
 
           <div className="mt-4 border-b-1">
 
-            {tasksList.map((task) => (
+            {tasksList.length === 0 && <p className="text-xs border-t-1 py-4 "> Voce nao possui atividades cadastradas </p>}
+
+            {filterTask.map((task) => (
               <div
                 className="h-14 flex justify-between items-center  border-t-1"
                 key={task.id}
@@ -164,7 +180,7 @@ const Home = () => {
           <div className="flex justify-between mt-4">
             <div className="flex gap-2 items-center">
               <ListCheck size={18} />
-              <p className="text-xs">Tarefas concluidas (3/3)</p>
+              <p className="text-xs">Tarefas concluidas ({ tasksList.filter(task => task.done).length}/{tasksList.length})</p>
             </div>
 
             <AlertDialog>
@@ -186,8 +202,10 @@ const Home = () => {
                   </AlertDialogTitle>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogAction>Sim</AlertDialogAction>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction className="cursor-pointer"
+                  onClick={clearCompletedTask}
+                  >Sim</AlertDialogAction>
+                  <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -196,11 +214,13 @@ const Home = () => {
           <div className="h-2 w-full bg-gray-100 mt-4 rounded-md">
             <div
               className="h-full bg-blue-500 rounded-md"
-              style={{ width: "56%" }}
+              style={{ width: `
+                ${((tasksList.filter(task => task.done).length) / tasksList.length) * 100}%`
+              }}
             ></div>
           </div>
           <div className="flex justify-end mt-2">
-            <p className="text-xs">3 Tarefas no total</p>
+            <p className="text-xs">{tasksList.length} Tarefas no total</p>
           </div>
         </CardContent>
       </Card>
